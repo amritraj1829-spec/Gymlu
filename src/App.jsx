@@ -1,19 +1,34 @@
 import { useState } from 'react';
 import './utils/chartSetup';
-import { Activity, Scale, BarChart2, Home, Plus } from 'lucide-react';
+import { Activity, Scale, BarChart2, Home, Plus, User } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import WorkoutDayView from './components/WorkoutDayView';
 import Stats from './components/Stats';
 import WeighInView from './components/WeighInView';
 import MuscleDetail from './components/MuscleDetail';
 import RoutinePlanner from './components/RoutinePlanner';
+import Login from './components/auth/Login';
+import Signup from './components/auth/Signup';
+import Account from './components/auth/Account';
 import { MUSCLE_GROUPS } from './utils/storage';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './index.css';
 
-function App() {
+function AppContent() {
+  const { user, loading } = useAuth();
   const [view, setView] = useState('dashboard');
   const [subView, setSubView] = useState(null);
 
+  if (loading) {
+    return (
+      <div className="flex-col" style={{ height: '100vh', justifyContent: 'center', alignItems: 'center' }}>
+        <h2 className="accent">Gymlu</h2>
+        <p className="text-secondary">Loading your profile...</p>
+      </div>
+    );
+  }
+
+  // Handle Navigation and Pseudo-Routing
   const handleNavigate = (newView, param) => {
     if (newView === 'muscle') {
       setView('dashboard');
@@ -30,18 +45,29 @@ function App() {
     setSubView(null);
   };
 
+  // Redirect to Login if not authenticated
+  if (!user && view !== 'signup') {
+    return <Login onNavigate={handleNavigate} />;
+  }
+
+  if (!user && view === 'signup') {
+    return <Signup onNavigate={handleNavigate} />;
+  }
+
   return (
     <div className="app-container">
-
       <main style={{ flex: 1, paddingBottom: '90px' }}>
         {view === 'dashboard' && !subView && <Dashboard onNavigate={handleNavigate} />}
 
         {view === 'dashboard' && subView === 'weight' && <WeighInView onBack={() => setSubView(null)} />}
-        {view === 'dashboard' && subView && typeof subView === 'object' && subView.type === 'muscle' && <MuscleDetail muscle={subView.value} onBack={() => setSubView(null)} />}
+        {view === 'dashboard' && subView && typeof subView === 'object' && subView.type === 'muscle' && (
+          <MuscleDetail muscle={subView.value} onBack={() => setSubView(null)} />
+        )}
 
         {view === 'workout' && <WorkoutDayView />}
         {view === 'stats' && <Stats />}
         {view === 'planner' && <RoutinePlanner />}
+        {view === 'account' && <Account onBack={() => setView('dashboard')} />}
       </main>
 
       <nav className="flex-row" style={{
@@ -120,8 +146,32 @@ function App() {
           <BarChart2 size={24} />
           <span style={{ fontSize: '0.7rem' }}>Stats</span>
         </button>
+
+        <button
+          onClick={() => setView('account')}
+          className="flex-col"
+          style={{
+            background: 'transparent',
+            gap: '4px',
+            opacity: view === 'account' ? 1 : 0.5,
+            color: view === 'account' ? 'var(--accent)' : 'var(--text-primary)',
+            alignItems: 'center',
+            padding: 0
+          }}
+        >
+          <User size={24} />
+          <span style={{ fontSize: '0.7rem' }}>Account</span>
+        </button>
       </nav>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
